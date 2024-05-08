@@ -8,8 +8,7 @@ use sqlx::sqlite::{SqliteConnectOptions, SqlitePoolOptions};
 use sqlx::{Pool, Sqlite};
 
 use crate::errors::Error;
-use crate::errors::Error::DBMigrate;
-use crate::errors::Error::Database;
+use crate::errors::Error::{DBMigrate,DBConnectError};
 
 pub const DB_FILE: &str = "data.db";
 
@@ -52,5 +51,5 @@ pub async fn db_conn_pool() -> Result<&'static Pool<Sqlite>, Error> {
     DB_ONCE_CELL
         .get_or_try_init(db)
         .await
-        .or_else(|err| Err(Database(err)))
+        .or_else(|err| Err(DBConnectError(err)))
 }

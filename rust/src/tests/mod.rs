@@ -1,3 +1,6 @@
+#[cfg(test)]
+pub mod repository;
+
 use crate::constant;
 use crate::constant::db_conn_pool;
 use crate::constant::run_migrations;
@@ -18,6 +21,7 @@ pub fn runtime() -> Result<&'static Runtime, Error> {
 
 pub struct MyAsyncContext {
     value: String,
+    db_pool: &'static sqlx::Pool<sqlx::Sqlite>,
 }
 
 pub struct MyContext {
@@ -30,6 +34,7 @@ impl AsyncTestContext for MyAsyncContext {
         initialize().await;
         MyAsyncContext {
             value: "test".to_string(),
+            db_pool: db_conn_pool().await.unwrap(),
         }
     }
 
@@ -66,7 +71,8 @@ pub async fn initialize() -> &'static anyhow::Result<()> {
         let test_folder = ".".to_string();
         constant::app_data_path(test_folder.to_string());
 
-        fs::remove_file(Path::new(".").join(DB_FILE)).unwrap_or_else(|why| error!("! {:?}", why.kind()));
+        fs::remove_file(Path::new(".").join(DB_FILE))
+            .unwrap_or_else(|why| error!("! {:?}", why.kind()));
         match run_migrations().await {
             Ok(_) => {
                 info!("migrations done");
@@ -99,25 +105,4 @@ pub async fn initialize() -> &'static anyhow::Result<()> {
 fn test_works(ctx: &mut MyContext) {
     info!("test_works --------");
     assert_eq!(ctx.value, "test")
-}
-
-#[derive(sqlx::FromRow, Debug)]
-struct Test {
-    id: i32,
-    content: String,
-}
-#[test_context(MyAsyncContext)]
-#[tokio::test]
-async fn test_works2(ctx: &mut MyAsyncContext) {
-    let test_records = sqlx::query_as::<_, Test>("select * from test")
-        .fetch_all(db_conn_pool().await.unwrap())
-        .await
-        .unwrap();
-    assert_eq!(test_records.len(), 1);
-    for record in test_records {
-        assert_eq!(record.id, 1);
-        assert_eq!(record.content, "test1");
-    }
-
-    assert_eq!(ctx.value, "test");
 }
