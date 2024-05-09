@@ -4,7 +4,7 @@ use crate::constant::db_conn_pool;
 use futures::executor::block_on;
 
 use super::{PageQuery, Repository};
-use crate::domain::UserProvider;
+use crate::domain::{Model, UserProvider};
 use crate::errors::Error;
 
 pub struct UserProviderRepository {
@@ -28,34 +28,43 @@ impl Default for UserProviderRepository {
     }
 }
 
-impl Repository<UserProvider, i32> for UserProviderRepository {
-    async fn find_page(&self, page_query: PageQuery, query: UserProvider) -> Result<super::Page<UserProvider>, crate::errors::Error> {
+impl Repository<UserProvider, u32> for UserProviderRepository {
+    async fn find_page(
+        &self,
+        page_query: PageQuery,
+        query: UserProvider,
+    ) -> Result<super::Page<UserProvider>, crate::errors::Error> {
         todo!()
     }
     async fn find_all(&self) -> Result<Vec<UserProvider>, crate::errors::Error> {
-        let providers = sqlx::query_as::<_, UserProvider>("select * from user_provider")
+        let sql = format!("SELECT * FROM {}", UserProvider::table_name());
+        let providers = sqlx::query_as::<_, UserProvider>(&sql)
             .fetch_all(self.db_pool)
             .await
             .map_err(|e| Error::DBQueryError(e));
         providers
     }
 
-    async fn find_by_id(&self, id: i32) -> Result<UserProvider, crate::errors::Error> {
-        let provider =
-            sqlx::query_as::<_, UserProvider>("select * from user_provider where id = ?")
-                .bind(id)
-                .fetch_one(self.db_pool)
-                .await
-                .map_err(|e| Error::DBQueryError(e));
+    async fn find_by_id(&self, id: u32) -> Result<UserProvider, crate::errors::Error> {
+        let sql = format!("SELECT * FROM {} WHERE id = ?", UserProvider::table_name());
+        let provider = sqlx::query_as::<_, UserProvider>(&sql)
+            .bind(id)
+            .fetch_one(self.db_pool)
+            .await
+            .map_err(|e| Error::DBQueryError(e));
         provider
     }
 
     async fn save(&self, entity: &mut UserProvider) -> Result<bool, crate::errors::Error> {
         //save
         if entity.id == 0 {
-            let sql = r#"INSERT INTO user_provider (access_key, secret_key, host, prefix, naming_rule, provider_id)
-            VALUES (?, ?, ?, ?, ?, ?)"#;
-            let pk = sqlx::query(sql)
+            let sql = format!(
+                r#"
+            INSERT INTO {}(access_key, secret_key, host, prefix, naming_rule, provider_id)
+                VALUES (?, ?, ?, ?, ?, ?)"#,
+                UserProvider::table_name()
+            );
+            let pk = sqlx::query(&sql)
                 .bind(&entity.access_key)
                 .bind(&entity.secret_key)
                 .bind(&entity.host)
@@ -70,16 +79,19 @@ impl Repository<UserProvider, i32> for UserProviderRepository {
             if pk == 0 {
                 return Err(Error::DBQueryError(sqlx::Error::RowNotFound));
             }
-            entity.id = pk as i32;
+            entity.id = pk as u32;
             return Ok(true);
         };
 
         //update
-        let sql = r#"
-            UPDATE user_provider
+        let sql = format!(
+            r#"
+            UPDATE {}
                 SET access_key = ?, secret_key = ?, host = ?, prefix = ?, naming_rule = ?, provider_id = ? 
-                WHERE id = ?"#;
-        let ra = sqlx::query(sql)
+                WHERE id = ?"#,
+            UserProvider::table_name()
+        );
+        let ra = sqlx::query(&sql)
             .bind(&entity.access_key)
             .bind(&entity.secret_key)
             .bind(&entity.host)
@@ -95,9 +107,9 @@ impl Repository<UserProvider, i32> for UserProviderRepository {
         return Ok(ra > 0);
     }
 
-    async fn delete(&self, id: i32) -> Result<bool, crate::errors::Error> {
-        let sql = r#"DELETE FROM user_provider WHERE id = ?"#;
-        let rows_affected = sqlx::query(sql)
+    async fn delete(&self, id: u32) -> Result<bool, crate::errors::Error> {
+        let sql = format!(r#"DELETE FROM {} WHERE id = ?"#, UserProvider::table_name());
+        let rows_affected = sqlx::query(&sql)
             .bind(id)
             .execute(self.db_pool)
             .await

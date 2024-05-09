@@ -1,14 +1,16 @@
 use std::future::Future;
 
-use crate::errors::Error;
+use crate::{domain::Model, errors::Error};
 
 mod user_provider;
 pub use user_provider::UserProviderRepository;
 
+const DEFAULT_PAGE_SIZE: u32 = 10;
+
 /**
  * Repository trait
  */
-pub trait Repository<T, K> {
+pub trait Repository<T: Model, K> {
     /// Find entity by id
     /// # Examples
     /// ```
@@ -33,18 +35,18 @@ pub trait Repository<T, K> {
 
 pub struct Page<T> {
     pub content: Vec<T>,
-    pub total_elements: i64,
-    pub total_pages: i64,
-    pub page: i64,
-    pub size: i64,
+    pub total_elements: u32,
+    pub total_pages: u32,
+    pub page: u32,
+    pub size: u32,
 }
 
 /**
  * PageQuery struct
  */
 pub struct PageQuery {
-    pub page: i64,
-    pub size: i64,
+    pub page: u32,
+    pub size: u32,
     pub sort: Option<Sort>,
 }
 

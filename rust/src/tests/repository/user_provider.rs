@@ -1,6 +1,3 @@
-// use super::super::MyAsyncContext;
-
-use openssl::provider;
 use test_context::test_context;
 
 use crate::domain::UserProvider;
