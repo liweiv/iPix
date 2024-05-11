@@ -1,0 +1,2 @@
+mod user_provider_repository_impl;
+pub use user_provider_repository_impl::UserProviderRepositoryImpl;

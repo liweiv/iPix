@@ -1,16 +1,19 @@
-use std::future::Future;
+mod impls;
+mod user_provider_repository;
+use std::fmt::Debug;
 
-use crate::{domain::Model, errors::Error};
+pub use impls::UserProviderRepositoryImpl;
+pub use user_provider_repository::UserProviderRepository;
 
-mod user_provider;
-pub use user_provider::UserProviderRepository;
+use crate::{domain::DbModel, errors::Error};
 
 const DEFAULT_PAGE_SIZE: u32 = 10;
 
 /**
  * Repository trait
  */
-pub trait Repository<T: Model, K> {
+#[async_trait]
+pub trait Repository<T: DbModel, K> {
     /// Find entity by id
     /// # Examples
     /// ```
@@ -18,39 +21,74 @@ pub trait Repository<T: Model, K> {
     ///
     /// assert_eq!(user.id, 1);
     /// ```
-    fn find_by_id(&self, id: K) -> impl Future<Output = Result<T, Error>> + Send;
-    fn save(&self, entity: &mut T) -> impl Future<Output = Result<bool, Error>> + Send;
-    fn delete(&self, id: K) -> impl Future<Output = Result<bool, Error>> + Send;
-    fn find_all(&self) -> impl Future<Output = Result<Vec<T>, Error>> + Send;
-    fn find_page(
+    async fn find_by_id(&self, id: K) -> Result<T, Error>;
+    async fn save(&self, entity: &mut T) -> Result<bool, Error>;
+    async fn delete(&self, id: K) -> Result<bool, Error>;
+    async fn find_all(&self) -> Result<Vec<T>, Error>;
+}
+#[async_trait]
+pub trait PageQuery<T: DbModel + Debug> {
+    async fn find_all_with_page(&self, pageable: Pageable, entity: T) -> Result<Page<T>, Error>;
+    fn build_pagination(
         &self,
-        page_query: PageQuery,
-        entity: T,
-    ) -> impl Future<Output = Result<Page<T>, Error>> + Send;
+        pageable: Pageable,
+        count: i64,
+        items: Vec<T>,
+    ) -> Result<Page<T>, Error> {
+        debug!("count: {}, items {:?}", count, items);
+        if count == 0 {
+            return Ok(Page {
+                content: vec![],
+                total_elements: 0,
+                total_pages: 0,
+                page: pageable.page,
+                page_size: pageable.page_size,
+            });
+        }
+
+        Ok(Page {
+            content: items,
+            total_elements: count as u32,
+            total_pages: (f64::from(count as f32) / (DEFAULT_PAGE_SIZE as f64)).ceil() as u32,
+            page: pageable.page,
+            page_size: pageable.page_size,
+        })
+    }
 }
 
 /**
  * Page struct
  */
 
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct Page<T> {
     pub content: Vec<T>,
     pub total_elements: u32,
     pub total_pages: u32,
     pub page: u32,
-    pub size: u32,
+    pub page_size: u32,
 }
 
 /**
  * PageQuery struct
  */
-pub struct PageQuery {
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct Pageable {
     pub page: u32,
-    pub size: u32,
+    pub page_size: u32,
     pub sort: Option<Sort>,
 }
-
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct Sort {
     pub field: String,
     pub order: String,
+}
+impl Default for Pageable {
+    fn default() -> Self {
+        Self {
+            page: 1,
+            page_size: DEFAULT_PAGE_SIZE,
+            sort: None,
+        }
+    }
 }

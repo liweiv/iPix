@@ -10,7 +10,7 @@ CREATE TABLE IF NOT EXISTS oss_provider (
 -- Table structure for oss provider
 -- --------------------------------------
 CREATE TABLE IF NOT EXISTS user_provider (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    id TEXT PRIMARY KEY,
     access_key TEXT NOT NULL,
     secret_key TEXT NOT NULL,
     host TEXT NOT NULL,

@@ -1,18 +1,17 @@
+use super::DbModel;
 use sqlx::FromRow;
-
-use super::Model;
-#[derive(Debug, Clone, FromRow)]
+#[derive(Debug, Clone, FromRow, Default, Serialize, Deserialize, PartialEq, Eq, Hash)]
 pub struct UserProvider {
-    pub id: u32,
-    pub access_key: String,
-    pub secret_key: String,
-    pub host: String,
+    pub id: Option<String>,
+    pub access_key: Option<String>,
+    pub secret_key: Option<String>,
+    pub host: Option<String>,
     pub prefix: Option<String>,
     pub naming_rule: Option<String>,
-    pub provider_id: String,
+    pub provider_id: Option<String>,
 }
 
-impl Model for UserProvider{
+impl DbModel for UserProvider {
     fn table_name() -> String {
         "user_provider".to_string()
     }

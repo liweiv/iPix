@@ -1,5 +1,7 @@
 #[cfg(test)]
 pub mod repository;
+#[cfg(test)]
+pub mod service;
 
 use crate::constant;
 use crate::constant::db_conn_pool;
