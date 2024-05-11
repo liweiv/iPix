@@ -1,8 +1,6 @@
 use std::error::Error as StdError;
 use std::result::Result as StdResult;
 
-use aws_sdk_s3::error;
-
 /// A specialized `Result` type for SQLx.
 pub type Result<T> = StdResult<T, Error>;
 
